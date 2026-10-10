@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoria de balancetes</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="topo">
+  <div class="marca">
+    <div class="titulo">Auditoria de balancetes</div>
+    <div class="sub"><span id="clube">Clube</span> · movimentação bancária <span id="periodo">jan/2025 a jun/2026</span></div>
+  </div>
+  <div class="selo" id="selo" title="Cada mês foi conferido com os saldos e totais impressos pelo banco">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 11.2 3.3 8l1-1 2.2 2.2 5.2-5.2 1 1z"/></svg>
+    <span>conferindo…</span>
+  </div>
+</header>
+
+<nav class="abas" role="tablist">
+  <button role="tab" data-aba="painel" class="ativa">Painel</button>
+  <button role="tab" data-aba="eventos">Eventos</button>
+  <button role="tab" data-aba="transacoes">Transações</button>
+  <button role="tab" data-aba="movimentos">Movimentos</button>
+  <button role="tab" data-aba="balancete">Balancete</button>
+  <button role="tab" data-aba="alertas">Pontos de atenção</button>
+  <button role="tab" data-aba="chat">Chat</button>
+  <button role="tab" data-aba="documentos">Documentos</button>
+</nav>
+
+<main>
+  <!-- PAINEL -->
+  <section id="painel" class="aba ativa">
+    <div class="kpis" id="kpis"></div>
+    <div class="aviso" id="aviso-sicredi" hidden></div>
+    <div class="grade2">
+      <figure class="cartao">
+        <figcaption><h3>Entradas e saídas por mês</h3><p>Sem transferências entre contas do clube e aplicações</p></figcaption>
+        <div class="legenda" id="leg-mensal"></div>
+        <div class="grafico"><canvas id="g-mensal"></canvas></div>
+      </figure>
+      <figure class="cartao">
+        <figcaption><h3>Para onde vai o dinheiro</h3><p>Saídas por grupo de categoria, todo o período</p></figcaption>
+        <div class="grafico"><canvas id="g-grupos"></canvas></div>
+      </figure>
+    </div>
+    <figure class="cartao">
+      <figcaption><h3>Gastos com eventos por mês</h3><p>Buffet, bebidas, restaurante, produção, shows, som e luz, decoração, recreação, esportivos</p></figcaption>
+      <div class="grafico baixo"><canvas id="g-eventos-mes"></canvas></div>
+    </figure>
+  </section>
+
+  <!-- EVENTOS -->
+  <section id="eventos" class="aba">
+    <div class="grade2">
+      <figure class="cartao">
+        <figcaption><h3>Gastos com eventos por categoria</h3><p>Todo o período · categorias por regra e revisão</p></figcaption>
+        <div class="grafico"><canvas id="g-ev-cat"></canvas></div>
+      </figure>
+      <figure class="cartao">
+        <figcaption><h3>1º semestre: 2025 × 2026</h3><p>Mesmo período, para comparar. Cuidado: 2026 pode estar incompleto,
+          porque parte da movimentação passou para contas no Sicredi cujos extratos não estão nos balancetes.</p></figcaption>
+        <div class="tabela-wrap"><table id="t-comparativo"></table></div>
+      </figure>
+    </div>
+    <figure class="cartao">
+      <figcaption><h3>Maiores fornecedores de eventos</h3><p>Clique para ver os pagamentos</p></figcaption>
+      <div class="tabela-wrap"><table id="t-top-ev"></table></div>
+    </figure>
+    <div class="grade2">
+      <figure class="cartao">
+        <figcaption><h3>Calendário de eventos do clube</h3><p>Cadastre os eventos divulgados no Instagram para cruzar com os gastos</p></figcaption>
+        <form id="f-evento" class="form">
+          <label>Nome<input name="nome" required maxlength="200" placeholder="Ex.: Festa Junina 2025"></label>
+          <label>Início<input name="data_inicio" type="date" required></label>
+          <label>Fim<input name="data_fim" type="date"></label>
+          <label>Tipo<select name="tipo"><option>show</option><option>social</option><option>cultural</option>
+            <option>esportivo</option><option>infantil</option><option>gastronômico</option><option>outro</option></select></label>
+          <label>Público estimado<input name="publico_estimado" type="number" min="0"></label>
+          <label class="largo">Link do Instagram<input name="link_instagram" type="url" placeholder="https://www.instagram.com/p/..."></label>
+          <button type="submit" class="primario">Adicionar evento</button>
+        </form>
+        <div class="tabela-wrap"><table id="t-eventos"></table></div>
+      </figure>
+      <figure class="cartao">
+        <figcaption><h3 id="cz-titulo">Cruzamento evento × gastos</h3><p id="cz-sub">Escolha um evento na lista</p></figcaption>
+        <div class="janela">Janela: <input type="number" id="cz-antes" value="30" min="0" max="120"> dias antes ·
+          <input type="number" id="cz-depois" value="7" min="0" max="60"> dias depois</div>
+        <div id="cz-total" class="hero"></div>
+        <div class="tabela-wrap"><table id="t-cruzamento"></table></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- TRANSAÇÕES -->
+  <section id="transacoes" class="aba">
+    <form id="f-filtros" class="filtros">
+      <label>De<input type="date" name="ini"></label>
+      <label>Até<input type="date" name="fim"></label>
+      <label>Tipo<select name="tipo"><option value="">todos</option></select></label>
+      <label>Grupo<select name="grupo"><option value="">todos</option><option>Eventos</option><option>Pessoal</option>
+        <option>Operacional</option><option>Receitas</option><option>Sem categoria</option></select></label>
+      <label>Categoria<select name="categoria"><option value="">todas</option></select></label>
+      <label>Direção<select name="direcao"><option value="">ambas</option><option value="E">entradas</option><option value="S">saídas</option></select></label>
+      <label class="largo">Busca<input name="q" placeholder="nome ou histórico"></label>
+      <button type="submit" class="primario">Filtrar</button>
+      <a id="b-xlsx" class="botao" href="/api/transacoes.xlsx">Baixar Excel</a>
+    </form>
+    <div id="tx-resumo" class="resumo"></div>
+    <div class="cartao"><div class="tabela-wrap alta"><table id="t-tx"></table></div>
+      <div class="paginacao"><button id="tx-ant">Anterior</button><span id="tx-pag"></span><button id="tx-prox">Próxima</button></div></div>
+  </section>
+
+  <!-- MOVIMENTOS SELECIONADOS -->
+  <section id="movimentos" class="aba">
+    <p class="nota">Só as strings escolhidas: Pix recebido, Saque dinheiro, Pagamento fornecedor, Cheque emitido, TED enviado,
+      Pix enviado, Dep cheque e TAR. A extração completa continua na aba Transações.</p>
+    <form id="f-mov" class="filtros">
+      <label>String<select name="string"><option value="">todas</option><option>Pix recebido</option><option>Pix enviado</option>
+        <option>TED enviado</option><option>Pagamento fornecedor</option><option>Cheque emitido</option><option>Saque dinheiro</option>
+        <option>Dep cheque</option><option>TAR</option></select></label>
+      <label>Mês/ano<select name="mes"><option value="">todos</option></select></label>
+      <label class="largo">Favorecido ou histórico<input name="q" placeholder="nome, CPF/CNPJ ou texto"></label>
+      <button type="submit" class="primario">Filtrar</button>
+      <a class="botao" href="/api/relatorios/movimentos_financeiros.xlsx">Baixar Excel completo</a>
+    </form>
+    <div class="cartao"><div class="tabela-wrap"><table id="t-mov-resumo"></table></div></div>
+    <div id="mov-total" class="resumo"></div>
+    <div class="cartao"><div class="tabela-wrap alta"><table id="t-mov"></table></div></div>
+  </section>
+
+  <!-- BALANCETE -->
+  <section id="balancete" class="aba">
+    <p class="nota" id="bal-nota">Contas do Balancete Analítico (contabilidade), separadas dos movimentos bancários.</p>
+    <form id="f-bal" class="filtros">
+      <label>Contas<select name="natureza"><option value="receita">Receitas</option><option value="despesa">Despesas</option></select></label>
+      <label>Coluna<select name="coluna"><option value="auto">Valor do mês (crédito nas receitas, débito nas despesas)</option>
+        <option value="credito">Crédito</option><option value="debito">Débito</option>
+        <option value="saldo_atual">Saldo atual</option></select></label>
+      <label>De (mês/ano)<select name="ini"><option value="">início</option></select></label>
+      <label>Até (mês/ano)<select name="fim"><option value="">fim</option></select></label>
+      <label class="largo">Buscar conta<input name="q" type="search" placeholder="nome ou código, ex.: festa, 41730, piscina"></label>
+      <button type="submit" class="primario">Pesquisar</button>
+      <button type="button" id="bal-limpar">Limpar</button>
+      <a class="botao" id="b-bal-xlsx" href="/api/relatorios/balancete_selecionado.xlsx">Baixar Excel do período</a>
+    </form>
+    <div class="cartao"><div class="tabela-wrap alta"><table id="t-bal"></table></div></div>
+  </section>
+
+  <!-- ALERTAS -->
+  <section id="alertas" class="aba">
+    <p class="nota">Padrões que merecem esclarecimento da diretoria. São perguntas a fazer, não conclusões.</p>
+    <div id="lista-alertas"></div>
+  </section>
+
+  <!-- CHAT -->
+  <section id="chat" class="aba">
+    <div class="cartao chat">
+      <div id="conversa"></div>
+      <div class="sugestoes" id="sugestoes"></div>
+      <form id="f-chat" class="pergunta">
+        <input name="pergunta" placeholder="Pergunte sobre os gastos, por exemplo: quanto foi gasto com buffet em 2025?" autocomplete="off" required minlength="3" maxlength="500">
+        <button type="submit" class="primario">Perguntar</button>
+      </form>
+      <p class="nota" id="chat-modelo">O LLM local transforma a pergunta em SQL; o banco faz as contas.</p>
+    </div>
+  </section>
+
+  <!-- DOCUMENTOS -->
+  <section id="documentos" class="aba">
+    <div class="cartao"><div class="tabela-wrap"><table id="t-docs"></table></div></div>
+  </section>
+</main>
+
+<dialog id="d-pdf">
+  <div class="d-topo"><strong id="d-titulo"></strong><button id="d-fechar" aria-label="Fechar">✕</button></div>
+  <div id="d-info"></div>
+  <img id="d-img" alt="Página do balancete com a linha destacada">
+</dialog>
+
+<div id="tooltip" role="tooltip"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

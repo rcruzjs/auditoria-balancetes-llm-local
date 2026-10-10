@@ -1,0 +1,12 @@
+# dados sensíveis do clube: nunca versionar
+balancetes pcsf/
+dados/
+saidas/
+tmp/
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+db/init/900_contas_local.sql
+avaliacao/apelidos.json
